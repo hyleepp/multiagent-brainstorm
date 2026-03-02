@@ -6,10 +6,15 @@
 
 一套运行在 [Cursor IDE](https://cursor.sh) 中的**多 AI Agent 头脑风暴系统**。通过共享文件通信 + grep-wait 同步机制，让 4 个 AI Agent（1 Lead + 3 Participants）围绕任意话题进行结构化、多轮、有对抗性的深度讨论。
 
-> **⚠️ 费用警告**
+> **⚠️ 费用 & 模型警告**
 >
 > 本系统每次运行会并行启动 **4 个 Agent（subagent）**，每个 Agent 在整个讨论过程中会进行多轮 tool call（读写文件、grep-wait、搜索证据等）。
 >
+> **关于模型选择（旧计费模式用户必读）**：
+> - 本系统设计时利用了 Claude Opus / GPT / Gemini 三个模型各自的认知特性。但在 Cursor 的**旧计费模式**下，只有开启 **Max 模式**才会使用 agent 文件中指定的模型（如 Claude Opus、GPT 5.2 等）；**非 Max 模式下所有 subagent 统一使用 Composer 模型**，无法体现不同模型的差异化风格。
+> - 因此，如果你使用旧计费模式，**强烈建议在 Max 模式下运行**以获得最佳效果。
+>
+> **关于费用**：
 > - **Max 模式（按量计费）**：一次完整的 brainstorm 大约消耗 **1 个父 Agent 请求 + 4 个子 Agent 请求**，每个子 Agent 内部有 10-30+ 次 tool call。根据话题复杂度和辩论轮数，单次会话的 token 消耗大约在 **50k-150k tokens**（总计，含所有 Agent）。请确保你的用量预算充足。
 > - **Ultra 模式（无限请求）**：无需担心，尽情使用。
 >

@@ -6,10 +6,15 @@
 
 A **multi-AI-agent brainstorming system** running inside [Cursor IDE](https://cursor.sh). Four AI agents (1 Lead + 3 Participants) conduct structured, multi-round, adversarial discussions on any topic via shared-file communication and grep-wait synchronization.
 
-> **⚠️ Cost Warning**
+> **⚠️ Cost & Model Warning**
 >
 > Each brainstorm session launches **4 parallel agents (subagents)**, each performing 10-30+ tool calls throughout the discussion (file I/O, grep-wait, web search, etc.).
 >
+> **Model selection (important for legacy billing users)**:
+> - This system is designed to leverage the distinct cognitive strengths of Claude Opus / GPT / Gemini. However, under Cursor's **legacy billing model**, only **Max Mode** uses the models specified in the agent files (e.g., Claude Opus, GPT 5.2). **Without Max Mode, all subagents run on the Composer model**, losing the differentiated cognitive styles across models.
+> - Therefore, if you are on the legacy billing plan, **we strongly recommend running in Max Mode** for the best experience.
+>
+> **Cost**:
 > - **Max Mode (usage-based billing)**: A full session consumes roughly **1 parent + 4 child agent requests**, totaling approximately **50k-150k tokens** depending on topic complexity and debate depth. Make sure your usage budget can accommodate this.
 > - **Ultra Mode (unlimited requests)**: No concerns — use freely.
 >
