@@ -111,7 +111,9 @@ DIVERGE ──▶ CHALLENGE ──▶ FREE DEBATE ──▶ CONVERGE ──▶ S
 
 ### 安装步骤
 
-将 `agents/` 目录下的 4 个文件复制到你的项目或全局的 `.cursor/agents/` 目录：
+**最简方式**：直接把本仓库链接 `https://github.com/hyleepp/multiagent-brainstorm` 发给 Cursor Agent，它会自动识别并完成安装。
+
+**手动安装**：将 `agents/` 目录下的 4 个文件复制到你的项目或全局的 `.cursor/agents/` 目录：
 
 ```bash
 # 方式一：放到当前项目（仅当前项目可用）

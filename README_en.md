@@ -110,7 +110,9 @@ DIVERGE ──▶ CHALLENGE ──▶ FREE DEBATE ──▶ CONVERGE ──▶ S
 
 ### Steps
 
-Copy the 4 files from `agents/` to your project or global `.cursor/agents/` directory:
+**Easiest way**: Just paste this repo link `https://github.com/hyleepp/multiagent-brainstorm` to Cursor Agent — it will automatically recognize and install the agents.
+
+**Manual install**: Copy the 4 files from `agents/` to your project or global `.cursor/agents/` directory:
 
 ```bash
 # Option 1: Project-level (current project only)
