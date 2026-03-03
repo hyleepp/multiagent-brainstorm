@@ -39,16 +39,55 @@ multiagent-brainstorm/
 ├── README.md                          ← You are here (English)
 ├── README_zh.md                       ← 中文版
 ├── LICENSE
-├── agents/                            ← 4 agent definition files (copy to .cursor/agents/)
-│   ├── brainstorm-lead.md             ── Moderator & referee
-│   ├── brainstorm-opus.md             ── Deep analyst
-│   ├── brainstorm-gpt.md              ── Empirical evaluator
-│   └── brainstorm-gemini.md           ── Creative synthesizer
+├── v1/agents/                         ← V1: Original version
+│   ├── brainstorm-lead.md
+│   ├── brainstorm-opus.md
+│   ├── brainstorm-gpt.md
+│   └── brainstorm-gemini.md
+├── v2/agents/                         ← V2: Enhanced version (recommended)
+│   ├── brainstorm-lead.md
+│   ├── brainstorm-opus.md
+│   ├── brainstorm-gpt.md
+│   └── brainstorm-gemini.md
 └── examples/                          ← Real discussion transcripts
     └── openclaw-future/
         ├── chatroom.md                ── "Future of OpenClaw" (Chinese, ~550 lines)
         └── chatroom_en.md             ── English translation (~560 lines)
 ```
+
+## Versions
+
+This project ships two versions of the agent definitions. Choose based on your needs:
+
+### V1 — Original (`v1/agents/`)
+
+The original brainstorm system with the core 5-phase flow. Simple, battle-tested, reliable.
+
+- 5 phases: DIVERGE → CHALLENGE → FREE DEBATE → CONVERGE → SYNTHESIS
+- Lead unilaterally controls debate closing (`DEBATE:CLOSE`)
+- Max 8 debate messages per participant
+- No minority report mechanism
+
+**Best for**: Quick brainstorms, simple topics, minimal overhead.
+
+### V2 — Enhanced (`v2/agents/`) ⭐ Recommended
+
+Built on V1 with three high-leverage improvements inspired by [Robert's Rules of Order](https://en.wikipedia.org/wiki/Robert%27s_Rules_of_Order) (1876). Core philosophy: *"The great purpose of all rules and forms, is to subserve the will of the assembly, rather than to restrain it."*
+
+**New in V2:**
+
+1. **Procedural Rights + Lead RULING**: Participants can challenge the discussion direction or suggest missed topics in natural language at any phase. Lead MUST scan for these and issue a formal RULING (accept/reject + reasoning). This creates a "bottom-up feedback channel" — participants are no longer locked into Lead's agenda.
+
+2. **Silent Consent Window**: Lead no longer unilaterally closes debate. Instead: broadcast `INTENT_CLOSE` → wait for objections (must include new evidence) → only then `CLOSE`. Prevents premature truncation of valuable discussions.
+
+3. **DISSENT (Minority Report)**: In CONVERGE, participants can attach an optional `DISSENT:` block with evidence/reasoning. Lead MUST preserve unrefuted dissent in the final synthesis. Prevents false consensus — AI disagreements often represent valuable alternative framings.
+
+**Also in V2:**
+- Max 50 debate messages per participant (let them debate freely)
+- Duplicate submission prevention (fixes a state machine bug)
+- Chair neutrality rule (Lead stays procedural during DIVERGE→DEBATE, saves analysis for SYNTHESIS)
+
+**Best for**: Complex topics, deep analysis, high-stakes decisions where you want thorough adversarial examination.
 
 ## Architecture
 
@@ -87,19 +126,28 @@ Agent enters grep-wait ──▶ grep scans file every 2s
 Target signature found ──▶ grep exits loop ──▶ Agent reads full file and continues
 ```
 
-### Discussion Flow (5 Phases)
+### Discussion Flow
 
+**V1 — 5 Phases:**
 ```
 DIVERGE ──▶ CHALLENGE ──▶ FREE DEBATE ──▶ CONVERGE ──▶ SYNTHESIS
 ```
 
+**V2 — 5 Phases + Procedural Mechanisms:**
+```
+DIVERGE ──▶ CHALLENGE ──▶ FREE DEBATE ──▶ CONVERGE ──▶ SYNTHESIS
+                                │
+                    V2: INTENT_CLOSE → Silent Consent Window → CLOSE
+```
+
 | Phase | Lead | Participants |
 |-------|------|-------------|
-| **DIVERGE** | Pose topic + 3-4 sub-questions | Give independent perspectives |
-| **CHALLENGE** | Extract conflicts, challenge directly | State AGREE/DISAGREE per point |
+| **DIVERGE** | Pose topic + 3-4 sub-questions | Give independent perspectives; may suggest missed topics (V2) |
+| **CHALLENGE** | Extract conflicts, challenge directly | State AGREE/DISAGREE per point; may challenge direction (V2) |
 | **FREE DEBATE** | Open debate + referee | @mention each other, search for evidence |
-| **CONVERGE** | Draft consensus | Add risks/opportunities/recommendations |
-| **SYNTHESIS** | Write final comprehensive analysis | — |
+| **Silent Consent** | Broadcast INTENT_CLOSE, wait for objections (V2) | OBJECTION with new evidence, or DONE |
+| **CONVERGE** | Draft consensus | Confirm + optional DISSENT block with evidence (V2) |
+| **SYNTHESIS** | Write final analysis (preserving unrefuted DISSENT in V2) | — |
 
 ## Installation
 
@@ -110,18 +158,22 @@ DIVERGE ──▶ CHALLENGE ──▶ FREE DEBATE ──▶ CONVERGE ──▶ S
 
 ### Steps
 
-**Easiest way**: Just paste this repo link `https://github.com/hyleepp/multiagent-brainstorm` to Cursor Agent — it will automatically recognize and install the agents.
+**Easiest way**: Just paste this repo link `https://github.com/hyleepp/multiagent-brainstorm` to Cursor Agent — it will automatically recognize and install the agents (defaults to V2).
 
-**Manual install**: Copy the 4 files from `agents/` to your project or global `.cursor/agents/` directory:
+**Manual install**: Choose your version and copy the 4 agent files:
 
 ```bash
-# Option 1: Project-level (current project only)
+# V2 (recommended) — with procedural rights, silent consent, DISSENT
 mkdir -p .cursor/agents
-cp agents/brainstorm-*.md .cursor/agents/
+cp v2/agents/brainstorm-*.md .cursor/agents/
 
-# Option 2: Global (available in all projects)
+# V1 (original) — simpler, fewer mechanisms
+mkdir -p .cursor/agents
+cp v1/agents/brainstorm-*.md .cursor/agents/
+
+# Global install (available in all projects) — add ~/.cursor/agents/ instead
 mkdir -p ~/.cursor/agents
-cp agents/brainstorm-*.md ~/.cursor/agents/
+cp v2/agents/brainstorm-*.md ~/.cursor/agents/   # or v1/agents/
 ```
 
 Cursor auto-detects the agents — no restart needed.
@@ -188,7 +240,7 @@ Lead uses `SIG:Lead:PHASE:DIVERGE` (command), participants use `SIG:Opus:DIVERGE
 
 ### Swap Participant Roles
 
-Edit `Debate Style` in each `agents/brainstorm-*.md`. Current assignments are based on each model's cognitive strengths:
+Edit `Debate Style` in each `v1/agents/brainstorm-*.md` or `v2/agents/brainstorm-*.md`. Current assignments are based on each model's cognitive strengths:
 
 | Agent | Model | Role | Why |
 |-------|-------|------|-----|
@@ -204,8 +256,16 @@ Agents default to responding in the same language as the user's topic. To force 
 
 ### Adjust Debate Depth
 
+**V1:**
 - `Max 8 debate messages`: Per participant in FREE DEBATE
 - `Max 5 loops on Step 10`: Lead's referee patience limit
+
+**V2:**
+- `Max 50 debate messages`: Per participant in FREE DEBATE
+- `Max 50 loops on Step 10`: Lead's referee patience limit
+- Silent consent window: 60s (adjustable in Lead prompt)
+
+**Both versions:**
 - Timeouts: Lead waits 300s, participants wait 120s
 
 ## Known Limitations & Troubleshooting
@@ -215,12 +275,14 @@ Agents default to responding in the same language as the user's topic. To force 
 | Agent exits early | LLMs tend to "return" after completing a task | Multi-layer "DO NOT RETURN" rules in prompts |
 | Inconsistent signatures | LLM mimics Lead's format | Templates include ✅/❌ examples |
 | grep-wait backgrounded | `block_until_ms` too low | Lead: 310000ms, participants: 130000ms |
-| Debate phase stuck | grep doesn't watch for REDIRECT | Wait commands include `DEBATE:REDIRECT` |
+| Debate phase stuck | grep doesn't watch for REDIRECT | Wait commands include `DEBATE:REDIRECT` (V2 also includes `INTENT_CLOSE`) |
+| Duplicate phase responses | Agent re-submits CHALLENGE during DEBATE | V2 adds DUPLICATE PREVENTION rule in state machine |
+| Agent jumps to CONVERGE on INTENT_CLOSE | Agent treats INTENT_CLOSE as PHASE:CONVERGE | V2 adds explicit warning in Action Table |
 | An agent doesn't respond | Network/timeout | Lead has timeout fallback, proceeds with 2/3 |
 
 ## Development History
 
-Built through ~20 iterations, solving these core engineering challenges:
+Built through ~27 iterations, solving these core engineering challenges:
 
 1. **Inter-agent communication**: Direct invocation → shared-file chatroom
 2. **Synchronization**: Sleep polling → grep-wait blocking
@@ -228,6 +290,7 @@ Built through ~20 iterations, solving these core engineering challenges:
 4. **Agent persistence**: Sequential scripts → state machine loops + anti-early-exit rules
 5. **Debate depth**: Single-round challenge → FREE DEBATE + @Receiver targeting + Lead as referee
 6. **Evidence gathering**: Integrated WebSearch/WebFetch for real-time evidence during debates
+7. **Procedural rights (V2)**: Inspired by Robert's Rules of Order — RULING mechanism, Silent Consent Window, DISSENT minority reports, chair neutrality
 
 ## License
 
