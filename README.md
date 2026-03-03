@@ -1,234 +1,233 @@
-# Cursor 多 Agent 头脑风暴系统
+# Cursor Multi-Agent Brainstorm System
 
-[English Version](README_en.md)
+[中文版](README_zh.md)
 
 ---
 
-一套运行在 [Cursor IDE](https://cursor.sh) 中的**多 AI Agent 头脑风暴系统**。通过共享文件通信 + grep-wait 同步机制，让 4 个 AI Agent（1 Lead + 3 Participants）围绕任意话题进行结构化、多轮、有对抗性的深度讨论。
+A **multi-AI-agent brainstorming system** running inside [Cursor IDE](https://cursor.sh). Four AI agents (1 Lead + 3 Participants) conduct structured, multi-round, adversarial discussions on any topic via shared-file communication and grep-wait synchronization.
 
-> **⚠️ 费用 & 模型警告**
+> **⚠️ Cost & Model Warning**
 >
-> 本系统每次运行会并行启动 **4 个 Agent（subagent）**，每个 Agent 在整个讨论过程中会进行多轮 tool call（读写文件、grep-wait、搜索证据等）。
+> Each brainstorm session launches **4 parallel agents (subagents)**, each performing 10-30+ tool calls throughout the discussion (file I/O, grep-wait, web search, etc.).
 >
-> **关于模型选择（旧计费模式用户必读）**：
-> - 本系统设计时利用了 Claude Opus / GPT / Gemini 三个模型各自的认知特性。但在 Cursor 的**旧计费模式**下，只有开启 **Max 模式**才会使用 agent 文件中指定的模型（如 Claude Opus、GPT 5.2 等）；**非 Max 模式下所有 subagent 统一使用 Composer 模型**，无法体现不同模型的差异化风格。
-> - 因此，如果你使用旧计费模式，**强烈建议在 Max 模式下运行**以获得最佳效果。
+> **Model selection (important for legacy billing users)**:
+> - This system is designed to leverage the distinct cognitive strengths of Claude Opus / GPT / Gemini. However, under Cursor's **legacy billing model**, only **Max Mode** uses the models specified in the agent files (e.g., Claude Opus, GPT 5.2). **Without Max Mode, all subagents run on the Composer model**, losing the differentiated cognitive styles across models.
+> - Therefore, if you are on the legacy billing plan, **we strongly recommend running in Max Mode** for the best experience.
 >
-> **关于费用**：
-> - **Max 模式（按量计费）**：一次完整的 brainstorm 大约消耗 **1 个父 Agent 请求 + 4 个子 Agent 请求**，每个子 Agent 内部有 10-30+ 次 tool call。根据话题复杂度和辩论轮数，单次会话的 token 消耗大约在 **50k-150k tokens**（总计，含所有 Agent）。请确保你的用量预算充足。
-> - **Ultra 模式（无限请求）**：无需担心，尽情使用。
+> **Cost**:
+> - **Max Mode (usage-based billing)**: A full session consumes roughly **1 parent + 4 child agent requests**, totaling approximately **50k-150k tokens** depending on topic complexity and debate depth. Make sure your usage budget can accommodate this.
+> - **Ultra Mode (unlimited requests)**: No concerns — use freely.
 >
-> 建议首次使用时先用一个简单话题测试，观察消耗后再决定是否调整辩论深度。
+> We recommend running a simple test topic first to observe consumption before adjusting debate depth.
 
-## 为什么做这个
+## Why This Exists
 
-现有的 AI 对话是 1v1 的——你问它答。但复杂问题需要**多视角碰撞**。
+Current AI conversations are 1-on-1 — you ask, it answers. But complex problems demand **multi-perspective collision**.
 
-这套系统的核心思路是**利用"御三家"（Claude / GPT / Gemini）各自的认知特性**来形成互补：
+The core idea is to **leverage the distinct cognitive strengths of the "Big Three" (Claude / GPT / Gemini)** for complementary analysis:
 
-- **Claude (Opus)**：擅长深层因果推理和系统性批判，能挖出其他模型忽略的结构性风险
-- **GPT**：擅长实证分析和工程判断，倾向于用数据和先例说话，天然的"证伪者"
-- **Gemini**：擅长跨界联想和创意重构，经常给出反直觉的框架——"你们在讨论 A，但真正的问题其实是 B"
+- **Claude (Opus)**: Excels at deep causal reasoning and systematic critique — uncovers structural risks others miss
+- **GPT**: Excels at empirical analysis and engineering judgment — naturally the "falsifier" who demands data and precedent
+- **Gemini**: Excels at cross-domain analogies and creative reframing — often delivers counter-intuitive perspectives: "You're debating A, but the real question is B"
 
-三个模型的思维盲区几乎不重叠。让它们在同一个"聊天室"里实时辩论、互相攻击对方的论点，由第四个 Agent 主持和裁判，最终收敛出的分析质量远超任何单一模型。
+Their cognitive blind spots barely overlap. By having them debate in a shared "chatroom" — attacking each other's arguments in real time, moderated by a fourth agent — the resulting analysis far exceeds what any single model produces.
 
-## 仓库结构
+## Repository Structure
 
 ```
 multiagent-brainstorm/
-├── README.md                          ← 你在这里（中文）
-├── README_en.md                       ← English version
+├── README.md                          ← You are here (English)
+├── README_zh.md                       ← 中文版
 ├── LICENSE
-├── agents/                            ← 4 个 Agent 定义文件（复制到 .cursor/agents/）
-│   ├── brainstorm-lead.md             ── 主持人 & 裁判
-│   ├── brainstorm-opus.md             ── 深度分析者
-│   ├── brainstorm-gpt.md              ── 实证评估者
-│   └── brainstorm-gemini.md           ── 创意发散者
-└── examples/                          ← 实际讨论记录
+├── agents/                            ← 4 agent definition files (copy to .cursor/agents/)
+│   ├── brainstorm-lead.md             ── Moderator & referee
+│   ├── brainstorm-opus.md             ── Deep analyst
+│   ├── brainstorm-gpt.md              ── Empirical evaluator
+│   └── brainstorm-gemini.md           ── Creative synthesizer
+└── examples/                          ← Real discussion transcripts
     └── openclaw-future/
-        ├── chatroom.md                ── "如何看待 OpenClaw 的未来"（中文，~550 行）
-        └── chatroom_en.md             ── English translation（~560 lines）
+        ├── chatroom.md                ── "Future of OpenClaw" (Chinese, ~550 lines)
+        └── chatroom_en.md             ── English translation (~560 lines)
 ```
 
-## 系统架构
+## Architecture
 
 ```
 User
   │
   ▼
-Parent Agent ──── 触发词: "brainstorm" / "bs" / "讨论一下" / "头脑风暴"
+Parent Agent ──── Triggers: "brainstorm" / "bs" / "debate"
   │
-  │  并行启动 4 个 Task（subagent）
+  │  Launches 4 Tasks in parallel
   │
-  ├──▶ Lead (brainstorm-lead)      ── 主持人 & 裁判
-  ├──▶ Opus (brainstorm-opus)      ── 深度分析者
-  ├──▶ GPT  (brainstorm-gpt)       ── 实证评估者
-  └──▶ Gemini (brainstorm-gemini)  ── 创意发散者
+  ├──▶ Lead (brainstorm-lead)      ── Moderator & referee
+  ├──▶ Opus (brainstorm-opus)      ── Deep analyst
+  ├──▶ GPT  (brainstorm-gpt)       ── Empirical evaluator
+  └──▶ Gemini (brainstorm-gemini)  ── Creative synthesizer
          │
          ▼
     ┌─────────────────┐
-    │  chatroom.md    │  ◀── 共享文件，所有通信通过 Read/Append
+    │  chatroom.md    │  ◀── Shared file, all communication via Read/Append
     └─────────────────┘
 ```
 
-### 通信机制
+### Communication
 
-Agent 之间**不直接调用**。所有通信通过一个共享的 `chatroom.md` 文件：
+Agents **never call each other directly**. All communication flows through a shared `chatroom.md` file:
 
-- **写入**：先写临时文件 → `cat tmp >> chatroom.md`（原子追加）
-- **等待**：`grep -c` 循环检测特定签名，每 2 秒扫描一次
-- **签名**：每条消息末尾带 `---SIG:{Name}:{Tag}---`，用于精确同步
+- **Write**: Write to temp file → `cat tmp >> chatroom.md` (atomic append)
+- **Wait**: `grep -c` loop checking for specific signatures every 2 seconds
+- **Signatures**: Each message ends with `---SIG:{Name}:{Tag}---` for precise synchronization
 
 ```
-Agent 写完消息 ──▶ 追加到 chatroom.md（带签名）
-                      │
-Agent 进入 grep-wait ──▶ 每 2s grep 扫描文件
-                      │
-目标签名出现 ──▶ grep 退出循环 ──▶ Agent 读取全文并继续
+Agent finishes message ──▶ Append to chatroom.md (with signature)
+                               │
+Agent enters grep-wait ──▶ grep scans file every 2s
+                               │
+Target signature found ──▶ grep exits loop ──▶ Agent reads full file and continues
 ```
 
-### 讨论流程（5 个阶段）
+### Discussion Flow (5 Phases)
 
 ```
 DIVERGE ──▶ CHALLENGE ──▶ FREE DEBATE ──▶ CONVERGE ──▶ SYNTHESIS
-  发散         挑战          自由辩论         收敛          综合
 ```
 
-| 阶段 | Lead 做什么 | 参与者做什么 |
-|------|-----------|-----------|
-| **DIVERGE** | 提出议题 + 3-4 个子问题 | 各自独立给出观点 |
-| **CHALLENGE** | 提炼冲突点，点名挑战 | 逐点 AGREE/DISAGREE |
-| **FREE DEBATE** | 开启辩论 + 当裁判 | 互相 @对方 直接辩论，可搜索证据 |
-| **CONVERGE** | 给出共识草案 | 补充风险/机会/建议 |
-| **SYNTHESIS** | 综合全部讨论，写出最终结论 | — |
+| Phase | Lead | Participants |
+|-------|------|-------------|
+| **DIVERGE** | Pose topic + 3-4 sub-questions | Give independent perspectives |
+| **CHALLENGE** | Extract conflicts, challenge directly | State AGREE/DISAGREE per point |
+| **FREE DEBATE** | Open debate + referee | @mention each other, search for evidence |
+| **CONVERGE** | Draft consensus | Add risks/opportunities/recommendations |
+| **SYNTHESIS** | Write final comprehensive analysis | — |
 
-## 安装
+## Installation
 
-### 前置条件
+### Prerequisites
 
-- [Cursor IDE](https://cursor.sh)（需要支持 Agent / Task 功能）
-- 使用 Cursor 的 **Agent 模式**（非 Ask 模式）
+- [Cursor IDE](https://cursor.sh) (with Agent / Task support)
+- Use Cursor's **Agent mode** (not Ask mode)
 
-### 安装步骤
+### Steps
 
-**最简方式**：直接把本仓库链接 `https://github.com/hyleepp/multiagent-brainstorm` 发给 Cursor Agent，它会自动识别并完成安装。
+**Easiest way**: Just paste this repo link `https://github.com/hyleepp/multiagent-brainstorm` to Cursor Agent — it will automatically recognize and install the agents.
 
-**手动安装**：将 `agents/` 目录下的 4 个文件复制到你的项目或全局的 `.cursor/agents/` 目录：
+**Manual install**: Copy the 4 files from `agents/` to your project or global `.cursor/agents/` directory:
 
 ```bash
-# 方式一：放到当前项目（仅当前项目可用）
+# Option 1: Project-level (current project only)
 mkdir -p .cursor/agents
 cp agents/brainstorm-*.md .cursor/agents/
 
-# 方式二：放到全局目录（所有项目可用）
+# Option 2: Global (available in all projects)
 mkdir -p ~/.cursor/agents
 cp agents/brainstorm-*.md ~/.cursor/agents/
 ```
 
-放好后 Cursor 会自动识别这些 Agent，无需重启。
+Cursor auto-detects the agents — no restart needed.
 
-## 使用方法
+## Usage
 
-在 Cursor 的 Agent 模式下，直接输入触发词 + 话题：
-
-```
-bs 讨论一下黄金的未来行情
-```
+In Cursor's Agent mode, type a trigger word + topic:
 
 ```
-头脑风暴 如何看待 OpenClaw 的未来？
+bs discuss the future of gold prices
 ```
 
-系统会自动：
-1. 创建 `.brainstorm/{session}/` 会话目录和空的 `chatroom.md`
-2. 并行启动 4 个 Agent
-3. Lead 分析你的话题，拟定议程和子问题
-4. 三个参与者发散 → 挑战 → 辩论 → 收敛
-5. Lead 综合所有观点，输出最终结论
+```
+brainstorm What's the future of OpenClaw?
+```
 
-讨论全程记录在 `chatroom.md` 中，你可以随时打开查看实时进展。
+The system will automatically:
+1. Create `.brainstorm/{session}/` directory with empty `chatroom.md`
+2. Launch 4 agents in parallel
+3. Lead analyzes the topic, frames the agenda
+4. Participants diverge → challenge → debate → converge
+5. Lead synthesizes all perspectives into a final conclusion
 
-## 实际输出示例
+The full discussion is recorded in `chatroom.md` — open it anytime to watch the live progress.
 
-`examples/` 目录包含完整的讨论记录，以下是摘要。
+## Example Output
 
-### OpenClaw 的未来（[查看全文](examples/openclaw-future/chatroom.md) | [English](examples/openclaw-future/chatroom_en.md)）
+See `examples/` for full transcripts. Summary below.
 
-**DIVERGE 阶段**——三个 Agent 分别从不同角度切入：
-- **GPT** 将 OpenClaw 定位为"末端执行器互操作标准"，强调 conformance 徽章和供应链可复制
-- **Gemini** 将其比作"物理世界的 Android"，核心价值是统一数据采集格式
-- **Opus** 聚焦安全危机（CVE、恶意技能比例），认为增长速度远超安全治理
+### Future of OpenClaw ([English](examples/openclaw-future/chatroom_en.md) | [中文原文](examples/openclaw-future/chatroom.md))
 
-**FREE DEBATE 阶段**——Agent 互相 @对方 直接攻击：
-- Gemini @GPT：硬件接口标准会陷入 xkcd 927 困境
-- GPT @Opus：翻译层会被大模型厂商 SDK 吞噬
-- Opus @Gemini："先能力后治理"在机器人领域行不通——Web 漏洞泄露数据，机器人漏洞伤害人
+**DIVERGE** — Three agents approach from different angles:
+- **GPT** frames OpenClaw as an "end-effector interop standard" — conformance badges, supply chain
+- **Gemini** calls it "the Android of the physical world" — data format standardization
+- **Opus** focuses on security crisis — CVEs, malicious skill ratio, growth outpacing governance
 
-**最终结论**——收敛出 12 个月 MVP 三件套：
-1. 硬件级安全网关（物理沙箱）
-2. Conformance 测试套件 + 兼容徽章
-3. 遥操作/数据录制工具
+**FREE DEBATE** — Agents directly @attack each other:
+- Gemini @GPT: Hardware interface standards will fall into the xkcd 927 trap
+- GPT @Opus: The translation layer will be absorbed by LLM provider SDKs
+- Opus @Gemini: "Move fast, govern later" doesn't work in robotics — web bugs leak data, robot bugs cause physical harm
 
-注意观察三个模型的风格差异——这正是系统设计的核心：**不同模型的认知盲区不重叠，互相攻击后留下的结论更经得起推敲。**
+**Final Conclusion** — Converged on a 12-month MVP:
+1. Hardware-level safety gateway (physical sandbox)
+2. Conformance test suite + compatibility badge
+3. Teleoperation / data recording tools
 
-## 核心设计决策
+Notice the distinct style of each model — this is the core design principle: **different models have non-overlapping blind spots; conclusions that survive their cross-examination are more robust.**
 
-**为什么用文件通信而不是直接 Agent 调用？**
-Cursor 的 subagent（Task tool）不支持 Agent 之间直接互调。共享文件是在平台限制下最可靠的通信方式。
+## Key Design Decisions
 
-**为什么用 grep-wait 而不是轮询？**
-传统轮询（`sleep → Read → parse`）每次都要把整个 chatroom 发回 Agent，浪费大量 token。`grep -c` 在 shell 内部循环，接近零 token 消耗。
+**Why file-based communication instead of direct agent calls?**
+Cursor's subagents (Task tool) don't support inter-agent invocation. Shared files are the most reliable communication method within platform constraints.
 
-**为什么参与者是状态机而不是顺序脚本？**
-LLM Agent 在长序列中容易"忘记"自己在第几步。状态机模式让 Agent 每次醒来都从头判断当前状态，更鲁棒。
+**Why grep-wait instead of polling?**
+Traditional polling (`sleep → Read → parse`) sends the entire chatroom back to the agent each cycle, wasting tokens. `grep -c` loops inside the shell with near-zero token cost.
 
-**为什么 Lead 和参与者的签名格式不同？**
-Lead 用 `SIG:Lead:PHASE:DIVERGE`（指令），参与者用 `SIG:Opus:DIVERGE`（回应）。分开后 grep 匹配更精确。
+**Why state machines instead of sequential scripts?**
+LLM agents tend to "forget" their position in long sequences. State machines let agents re-evaluate the current state from scratch each time they wake up — more robust than remembering "I'm on step N."
 
-## 自定义
+**Why different signature formats for Lead vs participants?**
+Lead uses `SIG:Lead:PHASE:DIVERGE` (command), participants use `SIG:Opus:DIVERGE` (response). Separation makes grep matching more precise.
 
-### 更换参与者角色
+## Customization
 
-编辑 `agents/brainstorm-*.md` 中的 `Debate Style` 部分。当前角色分配基于各模型的认知特长：
+### Swap Participant Roles
 
-| Agent | 模型 | 角色 | 为什么选它 |
-|-------|------|------|-----------|
-| **Opus** | Claude Opus | 深度分析者 | 擅长长链推理和系统性批判，适合挖因果链和结构性风险 |
-| **GPT** | GPT 系列 | 实证评估者 | 擅长基于数据和先例做判断，天然适合当"证伪者" |
-| **Gemini** | Gemini Pro | 创意发散者 | 擅长跨领域联想和框架重构，常能给出意料之外的切入角度 |
+Edit `Debate Style` in each `agents/brainstorm-*.md`. Current assignments are based on each model's cognitive strengths:
 
-核心原则是**让不同模型的认知盲区互相覆盖**。
+| Agent | Model | Role | Why |
+|-------|-------|------|-----|
+| **Opus** | Claude Opus | Deep analyst | Strong at long-chain reasoning and systematic critique |
+| **GPT** | GPT series | Empirical evaluator | Data-driven judgment, natural "falsifier" |
+| **Gemini** | Gemini Pro | Creative synthesizer | Cross-domain analogies, counter-intuitive reframing |
 
-### 更换语言
+The core principle: **make sure different models' cognitive blind spots cover each other**.
 
-所有 Agent 默认输出中文。修改每个文件的 `Rules` 部分中的 `Chinese for all responses` 即可。
+### Change Language
 
-### 调整辩论深度
+Agents default to responding in the same language as the user's topic. To force a specific language, change `Respond in the same language as the user's topic` in each file's `Rules` section.
 
-- `Max 8 debate messages`：每个参与者在 FREE DEBATE 阶段最多发 8 条消息
-- Lead 的 `Max 5 loops on Step 10`：裁判最多等 5 轮再强制收口
-- 超时时间：Lead 等待 300s，参与者等待 120s
+### Adjust Debate Depth
 
-## 已知限制 & Troubleshooting
+- `Max 8 debate messages`: Per participant in FREE DEBATE
+- `Max 5 loops on Step 10`: Lead's referee patience limit
+- Timeouts: Lead waits 300s, participants wait 120s
 
-| 问题 | 原因 | 应对 |
-|------|------|------|
-| Agent 提前退出 | LLM 倾向于"完成任务后返回" | prompt 中有多层 "DO NOT RETURN" 规则 |
-| 签名格式不一致 | LLM 模仿 Lead 格式 | 模板中有 ✅/❌ 对比示例 |
-| grep-wait 被 backgrounded | `block_until_ms` 设置太低 | Lead 310000ms，参与者 130000ms |
-| 辩论阶段卡住 | grep 未监听 REDIRECT | wait 命令已包含 `DEBATE:REDIRECT` |
-| 某个 Agent 未响应 | 网络/超时 | Lead 超时兜底，2/3 响应即可推进 |
+## Known Limitations & Troubleshooting
 
-## 开发历程
+| Issue | Cause | Mitigation |
+|-------|-------|-----------|
+| Agent exits early | LLMs tend to "return" after completing a task | Multi-layer "DO NOT RETURN" rules in prompts |
+| Inconsistent signatures | LLM mimics Lead's format | Templates include ✅/❌ examples |
+| grep-wait backgrounded | `block_until_ms` too low | Lead: 310000ms, participants: 130000ms |
+| Debate phase stuck | grep doesn't watch for REDIRECT | Wait commands include `DEBATE:REDIRECT` |
+| An agent doesn't respond | Network/timeout | Lead has timeout fallback, proceeds with 2/3 |
 
-经过约 20 轮迭代测试，解决了以下核心工程挑战：
+## Development History
 
-1. **Agent 间通信**：从尝试直接调用 → 共享文件 chatroom 架构
-2. **同步机制**：从 sleep 轮询 → grep-wait 阻塞等待
-3. **签名协议**：从 HTML 注释 → 纯文本 `---SIG:..---` 分隔符
-4. **Agent 持久性**：从顺序脚本 → 状态机循环 + 多层防早退规则
-5. **辩论深度**：从单轮 Challenge → FREE DEBATE + @Receiver 定向消息 + Lead 裁判
-6. **证据能力**：集成 WebSearch/WebFetch，辩论中可实时搜索数据
+Built through ~20 iterations, solving these core engineering challenges:
+
+1. **Inter-agent communication**: Direct invocation → shared-file chatroom
+2. **Synchronization**: Sleep polling → grep-wait blocking
+3. **Signature protocol**: HTML comments → plain-text `---SIG:..---` delimiters
+4. **Agent persistence**: Sequential scripts → state machine loops + anti-early-exit rules
+5. **Debate depth**: Single-round challenge → FREE DEBATE + @Receiver targeting + Lead as referee
+6. **Evidence gathering**: Integrated WebSearch/WebFetch for real-time evidence during debates
 
 ## License
 

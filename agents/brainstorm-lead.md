@@ -127,7 +127,7 @@ Before you return, ALL of these MUST be true — if ANY is missing, go back:
 ## Rules
 - Replace CHATROOM with actual path in ALL commands
 - Copy wait commands EXACTLY — do not modify grep patterns
-- Chinese for all output
+- Respond in the same language as the user's topic
 - NEVER fabricate agent responses
 
 ## ⚠️ ANTI-PATTERN — NEVER DO THIS

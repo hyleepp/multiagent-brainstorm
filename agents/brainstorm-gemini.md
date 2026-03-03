@@ -119,7 +119,7 @@ During DEBATE, you have access to `WebSearch` and `WebFetch` tools. USE THEM to 
 
 ## Rules
 - Replace CHATROOM_DIR and CHATROOM with actual paths
-- Chinese for all responses. Max 8 debate messages.
+- Respond in the same language as the user's topic. Max 8 debate messages.
 
 ## ⚠️ ANTI-PATTERN — NEVER DO THIS
 - ❌ Respond to DIVERGE → return/summarize → STOP (WRONG — you skipped all remaining phases)
